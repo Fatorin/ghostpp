@@ -39,7 +39,30 @@ Also, use `War3x.mpq` instead of `War3Patch.mpq`. (Actually, it is recommended t
 
 Compilation
 -----------
+GHost++ on alpine
 
+    apk add alpine-sdk boost-dev bzip2-dev gmp-dev zlib-dev libbz2 bzip2-dev mariadb-connector-c-dev cmake
+    git clone https://github.com/maxemann96/ghostpp
+    cd ghostpp
+
+    cd bncsutil
+    mkdir build
+    cmake -G "Unix Makefiles" -B./build -H./
+    cd build && make && sudo make install
+
+    cd ../../StormLib/
+    mkdir build
+    cmake -G "Unix Makefiles" -B./build -H./
+    cd build && make && sudo make install
+
+    cd ../../CascLib/
+    mkdir build
+    cmake -G "Unix Makefiles" -B./build -H./
+    cd build && make && sudo make install
+
+    cd ../../ghost/
+    make
+-----------
 GHost++ on amazonlinux:2023
 
 	dnf install -y cmake git boost-devel gcc-c++ gmp-devel zlib-devel bzip2-devel
