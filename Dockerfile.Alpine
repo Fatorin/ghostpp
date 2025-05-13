@@ -36,7 +36,7 @@ RUN make
 # Run Stage
 FROM alpine:3.14
 
-LABEL version="1.4"
+LABEL version="1.5.0"
 LABEL author="Fatorin"
 LABEL description="Support for Warcraft III 1.28f."
 
@@ -52,6 +52,6 @@ COPY --from=builder /usr/lib/libgcc_s.so.1 /usr/lib/
 
 COPY --from=builder /app/config/ /app/
 
-RUN apk update && apk add --no-cache bzip2 gmp zlib libbz2
+RUN apk update && apk add --no-cache bzip2 gmp zlib libbz2 mariadb-connector-c
 
 CMD ["/app/ghost++"]
