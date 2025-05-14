@@ -468,9 +468,9 @@ CGHost :: CGHost( CConfig *CFG )
 	m_AutoHostGameName = CFG->GetString( "autohost_gamename", string( ) );
 	m_AutoHostOwner = CFG->GetString( "autohost_owner", string( ) );
 	m_LastAutoHostTime = GetTime( );
-	m_AutoHostMatchMaking = false;
-	m_AutoHostMinimumScore = 0.0;
-	m_AutoHostMaximumScore = 0.0;
+	m_AutoHostMatchMaking = CFG->GetInt( "autohost_matchmaking", 1 ) == 0 ? false : true;
+	m_AutoHostMinimumScore = CFG->GetDouble( "autohost_minimum_score", 0.0 );
+	m_AutoHostMaximumScore = CFG->GetDouble( "autohost_maximum_score", 10000.0 );
 	m_AllGamesFinished = false;
 	m_AllGamesFinishedTime = 0;
 	m_TFT = CFG->GetInt( "bot_tft", 1 ) == 0 ? false : true;

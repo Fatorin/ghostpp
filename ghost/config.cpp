@@ -111,6 +111,14 @@ string CConfig :: GetString( string key, string x )
 		return m_CFG[key];
 }
 
+double CConfig :: GetDouble( string key, double x )
+{
+    if( m_CFG.find( key ) == m_CFG.end( ) )
+        return x;
+    else
+        return atof( m_CFG[key].c_str( ) );
+}
+
 void CConfig :: Set( string key, string x )
 {
 	m_CFG[key] = x;

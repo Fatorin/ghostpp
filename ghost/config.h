@@ -39,6 +39,7 @@ public:
 	int GetInt( string key, int x );
 	uint32_t GetUInt32( string key, uint32_t x );
 	string GetString( string key, string x );
+    double GetDouble( string key, double x );
 	void Set( string key, string x );
 };
 
