@@ -65,7 +65,7 @@ GHost++ on alpine
 -----------
 GHost++ on amazonlinux:2023
 
-	dnf install -y cmake git boost-devel gcc-c++ gmp-devel zlib-devel bzip2-devel
+	dnf install -y cmake git boost-devel gcc-c++ gmp-devel zlib-devel bzip2-devel mariadb-connector-c-devel
 	git clone -b AWS_LINUX_2023 https://github.com/Fatorin/ghostpp
 	cd ghostpp
 
