@@ -4403,6 +4403,94 @@ void CBaseGame :: BalanceSlots( )
 		}
 	}
 
+	map<unsigned char, vector<unsigned char>> TeamSlotsSids;
+
+	for( unsigned char i = 0; i < MAX_SLOTS; ++i )
+	{
+		unsigned char CurrentSlot = 0;
+
+		for( unsigned char j = 0; j < TeamSizes[i]; ++j )
+		{
+			while( CurrentSlot < m_Slots.size( ) && m_Slots[CurrentSlot].GetTeam( ) != i )
+				++CurrentSlot;
+			
+			TeamSlotsSids[i].push_back(CurrentSlot);
+		    CONSOLE_Print("[BALANC: PUSH:" + std::to_string(CurrentSlot) + ", Team=" + std::to_string(i) + "]");
+			++CurrentSlot;
+		}
+	}
+
+    vector<CGameSlot> n_Slots;
+
+	for( auto it = TeamSlotsSids.begin(); it != TeamSlotsSids.end(); ++it )
+    {
+		unsigned char team_id = it->first;
+        vector<unsigned char>& sids = it->second;
+
+		if (sids.empty()) continue;
+		CONSOLE_Print("[BALANC: Team:" + std::to_string(team_id) + ", Sids=" + std::to_string(sids.size()) + "]");
+		
+		std::sort(sids.begin(), sids.end(),
+			[this, &PlayerScores](unsigned char sid1, unsigned char sid2) {
+
+				if (sid1 >= m_Slots.size() || sid2 >= m_Slots.size()) {
+                	CONSOLE_Print("[BALANC: 錯誤: sid 越界, sid1=" + std::to_string(sid1) + ", sid2=" + std::to_string(sid2) + "]");
+                	return false;
+            	}
+
+				CGameSlot& slot1 = m_Slots[sid1];
+            	CGameSlot& slot2 = m_Slots[sid2];
+
+			 	// 判斷一個 Slot 是否是"可計分"的玩家 Slot
+				// 例如：必須是 Occupied (狀態為 2)，且 PID 不是 0 (假設 0 表示無玩家/觀察者)
+				// 你可能需要根據你的遊戲邏輯調整這個判斷條件
+				bool isScorable1 = (slot1.GetSlotStatus() == 2 && slot1.GetPID() != 0);
+				bool isScorable2 = (slot2.GetSlotStatus() == 2 && slot2.GetPID() != 0);
+
+				if (isScorable1 && !isScorable2) {
+					// sid1 是可計分玩家, sid2 不是 -> sid1 應該排在前面
+					CONSOLE_Print( "[BALANC: sid1 是可計分玩家, sid2 不是 -> sid1 應該排在前面 ]");
+					return true;
+				}
+				if (!isScorable1 && isScorable2) {
+					// sid1 不是可計分玩家, sid2 是 -> sid1 應該排在 sid2 後面
+					CONSOLE_Print( "[BALANC: sid1 不是可計分玩家, sid2 是 -> sid1 應該排在 sid2 後面 ]");
+					return false;
+				}
+				if (!isScorable1 && !isScorable2) {
+					// 兩個都不可計分 -> 相對順序不影響，視為相等
+					CONSOLE_Print( "[BALANC: 兩個都不可計分 -> 相對順序不影響，視為相等 ]");
+					return false;
+				}
+
+				// 如果執行到這裡，表示 isScorable1 和 isScorable2 都為 true
+				// 也就是說，slot1 和 slot2 都是可計分的玩家 Slot
+				// 現在獲取它們的玩家 ID 和分數
+				unsigned char pid1 = slot1.GetPID();
+				unsigned char pid2 = slot2.GetPID();
+
+				double score1 = PlayerScores[pid1];
+				double score2 = PlayerScores[pid2];
+
+				// 按照分數由高到低排序
+				return score1 > score2;
+			});
+
+		for (unsigned char sid : sids) {
+			n_Slots.push_back(m_Slots[sid]);
+		}
+	}
+
+	if (n_Slots.size() == m_Slots.size()) {
+		for (size_t i = 0; i < n_Slots.size(); ++i) {
+        	m_Slots[i] = n_Slots[i];
+		}
+    }
+	else
+	{
+		CONSOLE_Print( "[GAME: " + m_GameName + "] replace new slots failed, size is different" + "m_Slots:" + std::to_string(m_Slots.size()) + "n_Slots:" + std::to_string(n_Slots.size()) );
+	}
+
 	CONSOLE_Print( "[GAME: " + m_GameName + "] balancing slots completed in " + UTIL_ToString( EndTicks - StartTicks ) + "ms (with a cost of " + UTIL_ToString( AlgorithmCost ) + ")" );
 	SendAllChat( m_GHost->m_Language->BalancingSlotsCompleted( ) );
 	SendAllSlotInfo( );
