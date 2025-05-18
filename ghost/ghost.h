@@ -150,6 +150,7 @@ public:
 	uint32_t m_MatchMakingMethod;			// config value: the matchmaking method
 	uint32_t m_MapGameType;					// config value: the MapGameType overwrite (aka: refresh hack)
 	uint32_t m_StartGameWhenAtLeastXPlayers;
+	bool m_BalanceQuick;					// config value: enable quickly balacne 
 	vector<GProxyReconnector *> m_PendingReconnects;
 	boost::mutex m_ReconnectMutex;
 	

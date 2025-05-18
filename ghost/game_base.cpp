@@ -36,6 +36,9 @@
 #include <cmath>
 #include <string.h>
 #include <time.h>
+#include <algorithm>
+#include <random>
+#include <unordered_set>
 
 #include "next_combination.h"
 
@@ -4273,6 +4276,97 @@ vector<unsigned char> CBaseGame :: BalanceSlotsRecursive( vector<unsigned char> 
 	return BestOrdering;
 }
 
+vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam )
+{
+    size_t teamCount = 0;
+    size_t totalSlots = 0;
+    for (unsigned char i = StartTeam; i < MAX_SLOTS; ++i) {
+        if (TeamSizes[i] > 0) {
+            ++teamCount;
+            totalSlots += TeamSizes[i];
+            CONSOLE_Print("[GAME: " + m_GameName + "] Team " + std::to_string(i) + " requires " + std::to_string(TeamSizes[i]) + " players.");
+        }
+    }
+
+    CONSOLE_Print("[GAME: " + m_GameName + "] Total players: " + std::to_string(PlayerIDs.size()) + ", Total slots needed: " + std::to_string(totalSlots));
+
+    if (PlayerIDs.size() <= teamCount) {
+        sort(PlayerIDs.begin(), PlayerIDs.end(),
+            [&](unsigned char a, unsigned char b) {
+                return PlayerScores[a] > PlayerScores[b];
+            }
+        );
+        CONSOLE_Print("[GAME: " + m_GameName + "] Not enough players to balance - returning top " + std::to_string(PlayerIDs.size()));
+        return PlayerIDs;
+    }
+
+    size_t require_candidates = min(PlayerIDs.size(), teamCount * 2);
+
+    vector<unsigned char> sorted = PlayerIDs;
+    sort(sorted.begin(), sorted.end(),
+        [&](unsigned char a, unsigned char b) {
+            return PlayerScores[a] > PlayerScores[b];
+        }
+    );
+    vector<unsigned char> candidates(sorted.begin(), sorted.begin() + require_candidates);
+	SendAllChat( "Captain candidates (Top "+ std::to_string(require_candidates) + " by score):" );
+
+    for (auto pid : candidates) {
+		CGamePlayer *player = GetPlayerFromPID(pid);
+		string name = player ? player->GetName() : "Unknown";
+		string score = std::to_string(PlayerScores[pid]);	
+		SendAllChat( "Candidate: " + name + " | Score: " + score );
+    }
+
+    random_device rd;
+    mt19937 gen(rd());
+    shuffle(candidates.begin(), candidates.end(), gen);
+    vector<unsigned char> captains(candidates.begin(), candidates.begin() + teamCount);
+	SendAllChat( "Final selected captains:" );
+    for (auto pid : captains) {
+		CGamePlayer *player = GetPlayerFromPID(pid);
+		string name = player ? player->GetName() : "Unknown";
+		string score = std::to_string(PlayerScores[pid]);
+		SendAllChat( "Captain: " + name + " | Score: " + score );
+    }
+
+    unordered_set<unsigned char> capSet(captains.begin(), captains.end());
+    vector<unsigned char> rest;
+    rest.reserve(PlayerIDs.size() - captains.size());
+    for (auto pid : PlayerIDs) {
+        if (capSet.find(pid) == capSet.end())
+            rest.push_back(pid);
+    }
+    shuffle(rest.begin(), rest.end(), gen);
+
+    vector<size_t> slotsLeft;
+    slotsLeft.reserve(teamCount);
+    for (unsigned char i = StartTeam; i < MAX_SLOTS; ++i) {
+        if (TeamSizes[i] > 0)
+            slotsLeft.push_back(TeamSizes[i] - 1);
+    }
+
+    vector<unsigned char> ordering;
+    ordering.reserve(PlayerIDs.size());
+    size_t idx = 0;
+    for (size_t t = 0; t < teamCount; ++t) {
+        ordering.push_back(captains[t]);
+        for (size_t k = 0; k < slotsLeft[t] && idx < rest.size(); ++k) {
+            ordering.push_back(rest[idx]);
+            ++idx;
+        }
+    }
+
+    while (idx < rest.size()) {
+        ordering.push_back(rest[idx]);
+        CONSOLE_Print("[GAME: " + m_GameName + "] Extra unassigned player: Player ID " + std::to_string(rest[idx]) +
+                      " | Score: " + std::to_string(PlayerScores[rest[idx]]));
+        ++idx;
+    }
+
+    return ordering;
+}
+
 void CBaseGame :: BalanceSlots( )
 {
 	if( !( m_Map->GetMapOptions( ) & MAPOPT_FIXEDPLAYERSETTINGS ) )
@@ -4361,7 +4455,18 @@ void CBaseGame :: BalanceSlots( )
 	}
 
 	uint32_t StartTicks = GetTicks( );
-	vector<unsigned char> BestOrdering = BalanceSlotsRecursive( PlayerIDs, TeamSizes, PlayerScores, 0 );
+
+	vector<unsigned char> BestOrdering;
+
+	if (m_GHost->m_BalanceQuick)
+	{
+		BestOrdering = BalanceSlotsQuick( PlayerIDs, TeamSizes, PlayerScores, 0 );
+	}
+	else
+	{
+		BestOrdering = BalanceSlotsRecursive( PlayerIDs, TeamSizes, PlayerScores, 0 );
+	}
+	
 	uint32_t EndTicks = GetTicks( );
 
 	// the BestOrdering assumes the teams are in slot order although this may not be the case
@@ -4406,6 +4511,11 @@ void CBaseGame :: BalanceSlots( )
 	CONSOLE_Print( "[GAME: " + m_GameName + "] balancing slots completed in " + UTIL_ToString( EndTicks - StartTicks ) + "ms (with a cost of " + UTIL_ToString( AlgorithmCost ) + ")" );
 	SendAllChat( m_GHost->m_Language->BalancingSlotsCompleted( ) );
 	SendAllSlotInfo( );
+
+	if (m_GHost->m_BalanceQuick)
+	{
+		return;
+	}
 
 	for( unsigned char i = 0; i < MAX_SLOTS; ++i )
 	{

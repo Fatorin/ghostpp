@@ -491,6 +491,7 @@ CGHost :: CGHost( CConfig *CFG )
 	m_LANWar3Version = CFG->GetInt( "lan_war3version", 30 );
 	m_ReplayWar3Version = CFG->GetInt( "replay_war3version", 30 );
 	m_ReplayBuildNumber = CFG->GetInt( "replay_buildnumber", 6060 );
+	m_BalanceQuick = CFG->GetInt( "balance_quick", 0 ) == 0 ? false : true;
 	SetConfigs( CFG );
 
 	// load the battle.net connections

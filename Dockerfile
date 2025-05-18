@@ -36,7 +36,7 @@ RUN make
 # Run Stage
 FROM alpine:3.14
 
-LABEL version="1.5.2"
+LABEL version="1.5.3"
 LABEL author="Fatorin"
 LABEL description="Support for Warcraft III 1.28f."
 
