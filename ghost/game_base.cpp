@@ -4276,7 +4276,7 @@ vector<unsigned char> CBaseGame :: BalanceSlotsRecursive( vector<unsigned char> 
 	return BestOrdering;
 }
 
-vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam )
+vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam, size_t PoolCount)
 {
     size_t teamCount = 0;
     size_t totalSlots = 0;
@@ -4300,7 +4300,12 @@ vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> Play
         return PlayerIDs;
     }
 
-    size_t require_candidates = min(PlayerIDs.size(), teamCount * 2);
+	if (PoolCount < teamCount) {
+		CONSOLE_Print("[GAME: " + m_GameName + "] Warning: PoolCount (" + std::to_string(PoolCount) + ") is less than teamCount (" + std::to_string(teamCount) + "). Adjusting PoolCount to teamCount.");
+		PoolCount = teamCount;
+	}
+
+    size_t require_candidates = min(PlayerIDs.size(), PoolCount);
 
     vector<unsigned char> sorted = PlayerIDs;
     sort(sorted.begin(), sorted.end(),
@@ -4460,7 +4465,8 @@ void CBaseGame :: BalanceSlots( )
 
 	if (m_GHost->m_BalanceQuick)
 	{
-		BestOrdering = BalanceSlotsQuick( PlayerIDs, TeamSizes, PlayerScores, 0 );
+		size_t SafePool = m_GHost->m_BalanceQuickPoolCount > 0 ? static_cast<size_t>(m_GHost->m_BalanceQuickPoolCount) : 0;
+		BestOrdering = BalanceSlotsQuick( PlayerIDs, TeamSizes, PlayerScores, 0, SafePool );
 	}
 	else
 	{

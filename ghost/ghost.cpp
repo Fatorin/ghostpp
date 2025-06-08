@@ -492,6 +492,7 @@ CGHost :: CGHost( CConfig *CFG )
 	m_ReplayWar3Version = CFG->GetInt( "replay_war3version", 30 );
 	m_ReplayBuildNumber = CFG->GetInt( "replay_buildnumber", 6060 );
 	m_BalanceQuick = CFG->GetInt( "balance_quick", 0 ) == 0 ? false : true;
+	m_BalanceQuickPoolCount = CFG->GetInt( "balance_quick_pool_count", 2 );
 	SetConfigs( CFG );
 
 	// load the battle.net connections
