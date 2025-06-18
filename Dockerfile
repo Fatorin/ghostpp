@@ -30,7 +30,7 @@ RUN make
 
 FROM alpine:3.14 AS final
 
-LABEL version="1.5.4"
+LABEL version="1.5.5"
 LABEL author="Fatorin"
 LABEL description="Support for Warcraft III 1.28f."
 

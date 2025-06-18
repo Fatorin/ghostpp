@@ -151,7 +151,7 @@ public:
 	uint32_t m_MapGameType;					// config value: the MapGameType overwrite (aka: refresh hack)
 	uint32_t m_StartGameWhenAtLeastXPlayers;
 	bool m_BalanceQuick;					// config value: enable quickly balacne 
-	bool m_BalanceQuickPoolCount;			// config value: how many top players are selected to enter the random pool 
+	int m_BalanceQuickPoolCount;			// config value: how many top players are selected to enter the random pool 
 	vector<GProxyReconnector *> m_PendingReconnects;
 	boost::mutex m_ReconnectMutex;
 	
