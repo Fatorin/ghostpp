@@ -4276,7 +4276,7 @@ vector<unsigned char> CBaseGame :: BalanceSlotsRecursive( vector<unsigned char> 
 	return BestOrdering;
 }
 
-vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam, size_t PoolCount)
+vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam, size_t PoolCount, uint32_t Mode)
 {
     size_t teamCount = 0;
     size_t totalSlots = 0;
@@ -4300,39 +4300,64 @@ vector<unsigned char> CBaseGame :: BalanceSlotsQuick( vector<unsigned char> Play
         return PlayerIDs;
     }
 
-	if (PoolCount < teamCount) {
-		CONSOLE_Print("[GAME: " + m_GameName + "] Warning: PoolCount (" + std::to_string(PoolCount) + ") is less than teamCount (" + std::to_string(teamCount) + "). Adjusting PoolCount to teamCount.");
-		PoolCount = teamCount;
-	}
-
-    size_t require_candidates = min(PlayerIDs.size(), PoolCount);
-
-    vector<unsigned char> sorted = PlayerIDs;
-    sort(sorted.begin(), sorted.end(),
-        [&](unsigned char a, unsigned char b) {
-            return PlayerScores[a] > PlayerScores[b];
-        }
-    );
-    vector<unsigned char> candidates(sorted.begin(), sorted.begin() + require_candidates);
-	SendAllChat( "Captain candidates (Top "+ std::to_string(require_candidates) + " by score):" );
-
-    for (auto pid : candidates) {
-		CGamePlayer *player = GetPlayerFromPID(pid);
-		string name = player ? player->GetName() : "Unknown";
-		string score = std::to_string(PlayerScores[pid]);	
-		SendAllChat( "Candidate: " + name + " | Score: " + score );
-    }
-
     random_device rd;
     mt19937 gen(rd());
-    shuffle(candidates.begin(), candidates.end(), gen);
-    vector<unsigned char> captains(candidates.begin(), candidates.begin() + teamCount);
-	SendAllChat( "Final selected captains:" );
+    vector<unsigned char> captains;
+
+    if (Mode == 1)
+    {
+        // Mode 1: pick top N by score as candidate pool, then randomly select captains
+        if (PoolCount < teamCount) {
+            CONSOLE_Print("[GAME: " + m_GameName + "] Warning: PoolCount (" + std::to_string(PoolCount) + ") is less than teamCount (" + std::to_string(teamCount) + "). Adjusting PoolCount to teamCount.");
+            PoolCount = teamCount;
+        }
+
+        size_t require_candidates = min(PlayerIDs.size(), PoolCount);
+
+        vector<unsigned char> sorted = PlayerIDs;
+        sort(sorted.begin(), sorted.end(),
+            [&](unsigned char a, unsigned char b) {
+                return PlayerScores[a] > PlayerScores[b];
+            }
+        );
+        vector<unsigned char> candidates(sorted.begin(), sorted.begin() + require_candidates);
+        SendAllChat( "Captain candidates (Top "+ std::to_string(require_candidates) + " by score):" );
+
+        for (auto pid : candidates) {
+            CGamePlayer *player = GetPlayerFromPID(pid);
+            string name = player ? player->GetName() : "Unknown";
+            string score = std::to_string(PlayerScores[pid]);
+            SendAllChat( "Candidate: " + name + " | Score: " + score );
+        }
+
+        shuffle(candidates.begin(), candidates.end(), gen);
+        captains.assign(candidates.begin(), candidates.begin() + teamCount);
+    }
+    else if (Mode == 2)
+    {
+        // Mode 2: pick players closest to the average score as captains
+        double totalScore = 0.0;
+        for (auto pid : PlayerIDs)
+            totalScore += PlayerScores[pid];
+        double avgScore = totalScore / static_cast<double>(PlayerIDs.size());
+
+        vector<unsigned char> sorted = PlayerIDs;
+        sort(sorted.begin(), sorted.end(),
+            [&](unsigned char a, unsigned char b) {
+                return fabs(PlayerScores[a] - avgScore) < fabs(PlayerScores[b] - avgScore);
+            }
+        );
+
+        captains.assign(sorted.begin(), sorted.begin() + teamCount);
+        SendAllChat( "Captain selection by closest-to-average (avg: " + std::to_string(avgScore) + "):" );
+    }
+
+    SendAllChat( "Final selected captains:" );
     for (auto pid : captains) {
-		CGamePlayer *player = GetPlayerFromPID(pid);
-		string name = player ? player->GetName() : "Unknown";
-		string score = std::to_string(PlayerScores[pid]);
-		SendAllChat( "Captain: " + name + " | Score: " + score );
+        CGamePlayer *player = GetPlayerFromPID(pid);
+        string name = player ? player->GetName() : "Unknown";
+        string score = std::to_string(PlayerScores[pid]);
+        SendAllChat( "Captain: " + name + " | Score: " + score );
     }
 
     unordered_set<unsigned char> capSet(captains.begin(), captains.end());
@@ -4463,10 +4488,10 @@ void CBaseGame :: BalanceSlots( )
 
 	vector<unsigned char> BestOrdering;
 
-	if (m_GHost->m_BalanceQuick)
+	if (m_GHost->m_BalanceMode > 0)
 	{
-		size_t SafePool = m_GHost->m_BalanceQuickPoolCount > 0 ? static_cast<size_t>(m_GHost->m_BalanceQuickPoolCount) : 0;
-		BestOrdering = BalanceSlotsQuick( PlayerIDs, TeamSizes, PlayerScores, 0, SafePool );
+		size_t SafePool = m_GHost->m_BalanceModePoolCount > 0 ? static_cast<size_t>(m_GHost->m_BalanceModePoolCount) : 0;
+		BestOrdering = BalanceSlotsQuick( PlayerIDs, TeamSizes, PlayerScores, 0, SafePool, m_GHost->m_BalanceMode );
 	}
 	else
 	{
@@ -4517,11 +4542,6 @@ void CBaseGame :: BalanceSlots( )
 	CONSOLE_Print( "[GAME: " + m_GameName + "] balancing slots completed in " + UTIL_ToString( EndTicks - StartTicks ) + "ms (with a cost of " + UTIL_ToString( AlgorithmCost ) + ")" );
 	SendAllChat( m_GHost->m_Language->BalancingSlotsCompleted( ) );
 	SendAllSlotInfo( );
-
-	if (m_GHost->m_BalanceQuick)
-	{
-		return;
-	}
 
 	for( unsigned char i = 0; i < MAX_SLOTS; ++i )
 	{

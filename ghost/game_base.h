@@ -268,7 +268,7 @@ public:
 	virtual void CloseAllSlots( );
 	virtual void ShuffleSlots( );
 	virtual vector<unsigned char> BalanceSlotsRecursive( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam );
-	virtual vector<unsigned char> BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam, size_t PoolCount );
+	virtual vector<unsigned char> BalanceSlotsQuick( vector<unsigned char> PlayerIDs, unsigned char *TeamSizes, double *PlayerScores, unsigned char StartTeam, size_t PoolCount, uint32_t Mode );
 	virtual void BalanceSlots( );
 	virtual void AddToSpoofed( string server, string name, bool sendMessage );
 	virtual void AddToReserved( string name );

@@ -150,8 +150,8 @@ public:
 	uint32_t m_MatchMakingMethod;			// config value: the matchmaking method
 	uint32_t m_MapGameType;					// config value: the MapGameType overwrite (aka: refresh hack)
 	uint32_t m_StartGameWhenAtLeastXPlayers;
-	bool m_BalanceQuick;					// config value: enable quickly balacne 
-	int m_BalanceQuickPoolCount;			// config value: how many top players are selected to enter the random pool 
+	uint32_t m_BalanceMode;					// config value: balance mode (0=recursive, 1=quick pool random, 2=quick avg captains)
+	int m_BalanceModePoolCount;				// config value: how many top players are selected to enter the random pool
 	vector<GProxyReconnector *> m_PendingReconnects;
 	boost::mutex m_ReconnectMutex;
 	
